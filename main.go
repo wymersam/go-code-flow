@@ -17,6 +17,7 @@ import (
 )
 
 var codeFlowGraph = make(map[string][]string)
+var funcSummaries = make(map[string]string)
 
 func init() {
 	err := godotenv.Load()
@@ -34,7 +35,7 @@ func main() {
 	root := os.Args[1]
 	entryFunc := os.Args[2]
 
-	// ✅ Check if path exists and is a directory
+	// Check if path exists and is a directory
 	info, err := os.Stat(root)
 	if os.IsNotExist(err) {
 		fmt.Printf("❌ Error: The path '%s' does not exist.\n", root)
@@ -74,9 +75,8 @@ func main() {
 	defer file.Close()
 
 	// Write Mermaid content to file
-	fmt.Fprintln(file, "# Function Call Graph\n")
+	fmt.Fprintln(file, "# 🔁 Function Call Graph\n")
 	fmt.Fprintln(file, "```mermaid")
-
 	fmt.Fprintln(file, "graph LR")
 	fmt.Fprintln(file, "classDef entryFunc fill:#f96,stroke:#333,stroke-width:2px,font-weight:bold,font-size:18px,color:#000;")
 	fmt.Fprintln(file, "classDef leafFunc fill:#6f9,stroke:#333,stroke-width:1px,font-style:italic,font-size:14px,color:#000;")
@@ -84,10 +84,19 @@ func main() {
 
 	visited := make(map[string]bool)
 	printMermaidToFile(entryFunc, visited, file, entryFunc)
-
 	fmt.Fprintln(file, "```")
-
 	fmt.Println("✅ Mermaid diagram written to codeflow.md")
+
+	// Append Function Summaries
+	fmt.Fprintln(file, "\n## 📘 Function Summaries\n")
+	for fn, summary := range funcSummaries {
+		fmt.Fprintf(file, "<details>\n<summary><strong>%s</strong></summary>\n\n", fn)
+		fmt.Fprintln(file, "```go")
+		fmt.Fprintln(file, summary)
+		fmt.Fprintln(file, "```\n</details>\n")
+	}
+
+	fmt.Println("✅ Function summaries written to codeflow.md")
 }
 
 func buildCodeFlowDiagram(node *ast.File, fset *token.FileSet) {
@@ -113,9 +122,10 @@ func buildCodeFlowDiagram(node *ast.File, fset *token.FileSet) {
 			return true
 		}
 
+		funcSummaries[funcName] = summary
 		fmt.Printf("Summary for %s:\n%s\n\n", funcName, summary)
 
-		// Existing code to build the call graph
+		// Build the code flow graph
 		ast.Inspect(fn.Body, func(bn ast.Node) bool {
 			call, ok := bn.(*ast.CallExpr)
 			if !ok {
@@ -127,7 +137,6 @@ func buildCodeFlowDiagram(node *ast.File, fset *token.FileSet) {
 			case *ast.SelectorExpr:
 				codeFlowGraph[funcName] = append(codeFlowGraph[funcName], fun.Sel.Name)
 			}
-
 			return true
 		})
 		return true
@@ -140,7 +149,6 @@ func printMermaidToFile(fn string, visited map[string]bool, file *os.File, entry
 	}
 	visited[fn] = true
 
-	// Determine node class based on function role
 	nodeClass := "normalFunc"
 	callees := codeFlowGraph[fn]
 
@@ -150,10 +158,8 @@ func printMermaidToFile(fn string, visited map[string]bool, file *os.File, entry
 		nodeClass = "leafFunc"
 	}
 
-	// Print the node once with a label and class
 	fmt.Fprintf(file, "    %s[%q]:::%s\n", fn, fn, nodeClass)
 
-	// Print edges and recurse for each callee
 	for _, callee := range callees {
 		fmt.Fprintf(file, "    %s --> %s\n", fn, callee)
 		printMermaidToFile(callee, visited, file, entryFunc)
@@ -179,7 +185,7 @@ func getFunctionSummary(code string) (string, error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    "system",
-					Content: "You are a helpful assistant. Summarize the following Go function in one or two sentences.",
+					Content: "You are a helpful assistant. Summarise the following Go function in one or two sentences.",
 				},
 				{
 					Role:    "user",
