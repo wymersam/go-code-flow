@@ -2,203 +2,135 @@
 
 ```mermaid
 graph LR
-classDef bigFont fill:#fff,stroke:#333,stroke-width:1px,font-size:16px;
+classDef entryFunc fill:#f96,stroke:#333,stroke-width:2px,font-weight:bold,font-size:18px,color:#000;
+classDef leafFunc fill:#6f9,stroke:#333,stroke-width:1px,font-style:italic,font-size:14px,color:#000;
+classDef normalFunc fill:#fff,stroke:#333,stroke-width:1px,font-size:16px,color:#000;
+    main["main"]:::entryFunc
     main --> ReadFile
-    ReadFile:::bigFont
-    ReadFile:::bigFont
+    ReadFile["ReadFile"]:::leafFunc
     main --> NewCertPool
-    NewCertPool:::bigFont
-    NewCertPool:::bigFont
+    NewCertPool["NewCertPool"]:::leafFunc
     main --> AppendCertsFromPEM
-    AppendCertsFromPEM:::bigFont
-    AppendCertsFromPEM:::bigFont
+    AppendCertsFromPEM["AppendCertsFromPEM"]:::leafFunc
     main --> Println
-    Println:::bigFont
-    Println:::bigFont
+    Println["Println"]:::leafFunc
     main --> Fatal
-    Fatal:::bigFont
-    Fatal:::bigFont
+    Fatal["Fatal"]:::leafFunc
     main --> Println
-    Println:::bigFont
     main --> Handle
-    Handle:::bigFont
-    Handle:::bigFont
+    Handle["Handle"]:::leafFunc
     main --> StripPrefix
-    StripPrefix:::bigFont
-    StripPrefix:::bigFont
+    StripPrefix["StripPrefix"]:::leafFunc
     main --> FileServer
-    FileServer:::bigFont
-    FileServer:::bigFont
+    FileServer["FileServer"]:::leafFunc
     main --> Dir
-    Dir:::bigFont
-    Dir:::bigFont
+    Dir["Dir"]:::leafFunc
     main --> Handle
-    Handle:::bigFont
     main --> FileServer
-    FileServer:::bigFont
     main --> Dir
-    Dir:::bigFont
     main --> Getenv
-    Getenv:::bigFont
-    Getenv:::bigFont
+    Getenv["Getenv"]:::leafFunc
     main --> Must
-    Must:::bigFont
-    Must:::bigFont
+    Must["Must"]:::leafFunc
     main --> ParseFiles
-    ParseFiles:::bigFont
-    ParseFiles:::bigFont
+    ParseFiles["ParseFiles"]:::leafFunc
     main --> HandlerFunc
-    HandlerFunc:::bigFont
-    HandlerFunc:::bigFont
+    HandlerFunc["HandlerFunc"]:::leafFunc
     main --> Execute
-    Execute:::bigFont
-    Execute:::bigFont
+    Execute["Execute"]:::leafFunc
     main --> Error
-    Error:::bigFont
-    Error:::bigFont
+    Error["Error"]:::leafFunc
     main --> handleWebdav
-    handleWebdav:::bigFont
+    handleWebdav["handleWebdav"]:::normalFunc
     handleWebdav --> uploadFile
-    uploadFile:::bigFont
+    uploadFile["uploadFile"]:::normalFunc
     uploadFile --> FormFile
-    FormFile:::bigFont
-    FormFile:::bigFont
+    FormFile["FormFile"]:::leafFunc
     uploadFile --> Error
-    Error:::bigFont
     uploadFile --> Close
-    Close:::bigFont
-    Close:::bigFont
+    Close["Close"]:::leafFunc
     uploadFile --> FormValue
-    FormValue:::bigFont
-    FormValue:::bigFont
+    FormValue["FormValue"]:::leafFunc
     uploadFile --> Join
-    Join:::bigFont
-    Join:::bigFont
+    Join["Join"]:::leafFunc
     uploadFile --> Base
-    Base:::bigFont
-    Base:::bigFont
+    Base["Base"]:::leafFunc
     uploadFile --> OpenFile
-    OpenFile:::bigFont
-    OpenFile:::bigFont
+    OpenFile["OpenFile"]:::leafFunc
     uploadFile --> Context
-    Context:::bigFont
-    Context:::bigFont
+    Context["Context"]:::leafFunc
     uploadFile --> Error
-    Error:::bigFont
     uploadFile --> Close
-    Close:::bigFont
     uploadFile --> Copy
-    Copy:::bigFont
-    Copy:::bigFont
+    Copy["Copy"]:::leafFunc
     uploadFile --> Fprintf
-    Fprintf:::bigFont
-    Fprintf:::bigFont
+    Fprintf["Fprintf"]:::leafFunc
     handleWebdav --> createDir
-    createDir:::bigFont
+    createDir["createDir"]:::normalFunc
     createDir --> FormValue
-    FormValue:::bigFont
     createDir --> Error
-    Error:::bigFont
     createDir --> Mkdir
-    Mkdir:::bigFont
-    Mkdir:::bigFont
+    Mkdir["Mkdir"]:::leafFunc
     createDir --> Context
-    Context:::bigFont
     createDir --> Error
-    Error:::bigFont
     createDir --> Fprintf
-    Fprintf:::bigFont
     handleWebdav --> NotFound
-    NotFound:::bigFont
-    NotFound:::bigFont
+    NotFound["NotFound"]:::leafFunc
     handleWebdav --> propfind
-    propfind:::bigFont
+    propfind["propfind"]:::normalFunc
     propfind --> ServeHTTP
-    ServeHTTP:::bigFont
-    ServeHTTP:::bigFont
+    ServeHTTP["ServeHTTP"]:::leafFunc
     propfind --> NewDocument
-    NewDocument:::bigFont
-    NewDocument:::bigFont
+    NewDocument["NewDocument"]:::leafFunc
     propfind --> ReadFromString
-    ReadFromString:::bigFont
-    ReadFromString:::bigFont
+    ReadFromString["ReadFromString"]:::leafFunc
     propfind --> String
-    String:::bigFont
-    String:::bigFont
+    String["String"]:::leafFunc
     propfind --> Error
-    Error:::bigFont
     propfind --> FindElements
-    FindElements:::bigFont
-    FindElements:::bigFont
+    FindElements["FindElements"]:::leafFunc
     propfind --> SelectElement
-    SelectElement:::bigFont
-    SelectElement:::bigFont
+    SelectElement["SelectElement"]:::leafFunc
     propfind --> TrimPrefix
-    TrimPrefix:::bigFont
-    TrimPrefix:::bigFont
+    TrimPrefix["TrimPrefix"]:::leafFunc
     propfind --> Text
-    Text:::bigFont
-    Text:::bigFont
+    Text["Text"]:::leafFunc
     propfind --> OpenFile
-    OpenFile:::bigFont
     propfind --> Context
-    Context:::bigFont
     propfind --> Close
-    Close:::bigFont
     propfind --> New
-    New:::bigFont
-    New:::bigFont
+    New["New"]:::leafFunc
     propfind --> Copy
-    Copy:::bigFont
     propfind --> EncodeToString
-    EncodeToString:::bigFont
-    EncodeToString:::bigFont
+    EncodeToString["EncodeToString"]:::leafFunc
     propfind --> Sum
-    Sum:::bigFont
-    Sum:::bigFont
+    Sum["Sum"]:::leafFunc
     propfind --> FindElements
-    FindElements:::bigFont
     propfind --> NewElement
-    NewElement:::bigFont
-    NewElement:::bigFont
+    NewElement["NewElement"]:::leafFunc
     propfind --> SetText
-    SetText:::bigFont
-    SetText:::bigFont
+    SetText["SetText"]:::leafFunc
     propfind --> AddChild
-    AddChild:::bigFont
-    AddChild:::bigFont
+    AddChild["AddChild"]:::leafFunc
     propfind --> Set
-    Set:::bigFont
-    Set:::bigFont
+    Set["Set"]:::leafFunc
     propfind --> Header
-    Header:::bigFont
-    Header:::bigFont
+    Header["Header"]:::leafFunc
     propfind --> WriteHeader
-    WriteHeader:::bigFont
-    WriteHeader:::bigFont
+    WriteHeader["WriteHeader"]:::leafFunc
     propfind --> WriteTo
-    WriteTo:::bigFont
-    WriteTo:::bigFont
+    WriteTo["WriteTo"]:::leafFunc
     handleWebdav --> ServeHTTP
-    ServeHTTP:::bigFont
     main --> NewDigestAuthenticator
-    NewDigestAuthenticator:::bigFont
-    NewDigestAuthenticator:::bigFont
+    NewDigestAuthenticator["NewDigestAuthenticator"]:::leafFunc
     main --> Handle
-    Handle:::bigFont
     main --> Wrap
-    Wrap:::bigFont
-    Wrap:::bigFont
+    Wrap["Wrap"]:::leafFunc
     main --> ServeHTTP
-    ServeHTTP:::bigFont
     main --> Handle
-    Handle:::bigFont
     main --> Printf
-    Printf:::bigFont
-    Printf:::bigFont
+    Printf["Printf"]:::leafFunc
     main --> Fatal
-    Fatal:::bigFont
     main --> ListenAndServeTLS
-    ListenAndServeTLS:::bigFont
-    ListenAndServeTLS:::bigFont
+    ListenAndServeTLS["ListenAndServeTLS"]:::leafFunc
 ```

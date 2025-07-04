@@ -1,28 +1,38 @@
-# Code Flow Generator (Go)
+# 🧠 Code Flow Visualiser & Summariser (Go)
 
-This tool parses a Go project directory and generates a Mermaid.js function call graph starting from a specified entry function. The output is saved as a Markdown file (`codeflow.md`) containing a Mermaid diagram that visualises the call relationships.
+This tool parses Go source code, builds a **function call graph**, and generates a **Mermaid diagram** with function summaries using the OpenAI API.
 
 ---
 
-## Prerequisites
+## 🚀 Features
 
-The following mermaid extension is needed to see the finished diagrams in VS Code:
+- 🔎 Parses Go source files
+- 🧭 Extracts function calls and builds a flow graph
+- 📝 Summarises each function using the OpenAI API
+- 📄 Outputs a `codeflow.md` file with a Mermaid diagram for easy visualisation
 
-```shell
-code --install-extension bierner.markdown-mermaid
+---
+
+## 🛠️ Setup
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/your-username/go-code-graph
+cd go-code-graph
 ```
 
----
+### 2. Install dependencies
 
-## Features
+```bash
+go mod tidy
+```
 
-- Recursively parses all `.go` files in a given directory.
-- Extracts function calls inside functions to build a code flow graph.
-- Generates Mermaid syntax for a **left-to-right (LR)** graph layout.
-- Highlights nodes with a larger font size for better readability.
-- Allows you to specify the starting function to focus the graph on a particular use case or scenario.
+### 3. Create a .env file in the root directory
 
----
+```bash
+OPENAI_API_KEY=sk-proj-your-key-here
+```
 
 ## Usage
 
@@ -30,53 +40,40 @@ code --install-extension bierner.markdown-mermaid
 go run main.go [path-to-go-code] [entry-function-name]
 ```
 
-**path-to-go-code**: Path to the root directory of your Go project.
-
-**entry-function-name**: The function where the call graph traversal begins.
-
-Example:
+### Example
 
 ```bash
-go run main.go ./myproject HandleRequest
+go run main.go ./example main
 ```
 
-This generates a file `codeflow.md` containing a Mermaid graph of calls starting from HandleRequest.
+This will generate a file named codeflow.md with a Mermaid graph you can paste into:
 
-Output:
+[Mermaid Live](https://mermaid.live)
 
-`codeflow.md` — Markdown file with a Mermaid diagram.
+Markdown previewers with Mermaid support (e.g. VS Code with extension)
 
-Example snippet inside codeflow.md:
+### Output
 
-```markdown
-mermaid
-Copy
-Edit
+```mermaid
 graph LR
-classDef bigFont fill:#fff,stroke:#333,stroke-width:1px,font-size:16px;
+classDef entryFunc fill:#f96,stroke:#333,stroke-width:2px,font-weight:bold,font-size:18px,color:#000;
+classDef leafFunc fill:#6f9,stroke:#333,stroke-width:1px,font-style:italic,font-size:14px,color:#000;
+classDef normalFunc fill:#fff,stroke:#333,stroke-width:1px,font-size:16px,color:#000;
 
-HandleRequest --> AuthenticateUser
-AuthenticateUser:::bigFont
+main["main"]:::entryFunc
+main --> buildCodeFlowDiagram
+buildCodeFlowDiagram --> getFunctionSummary
+...
 ```
 
-You can render this Markdown with the previosuly installed Mermaid extension or Mermaid live editors to visualise your function call graph.
+## Dependencies
 
-### How It Works
+[OpenAI API](https://platform.openai.com/)
 
-The program walks through the Go source files in the given directory.
+[github.com/sashabaranov/go-openai](http://github.com/sashabaranov/go-openai)
 
-Parses each file using Go's `go/ast` and `go/parser` packages.
+[github.com/joho/godotenv](http://github.com/joho/godotenv)
 
-Builds a map of functions and their called functions.
+## Author
 
-Recursively writes Mermaid edges starting from the specified entry function.
-
-Adds CSS classes to nodes for better font sizing.
-
-Requirements
-Go 1.16+
-
-Compatible Mermaid renderer to visualize the diagram.
-
-License
-MIT License — Feel free to modify and use it in your projects.
+Sammy-Jo Wymer :)

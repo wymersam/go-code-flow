@@ -1,15 +1,30 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/printer"
 	"go/token"
+	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/joho/godotenv"
+	"github.com/sashabaranov/go-openai"
 )
 
 var codeFlowGraph = make(map[string][]string)
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	fmt.Println("Loaded API Key:", os.Getenv("OPENAI_API_KEY"))
+}
 
 func main() {
 	if len(os.Args) < 3 {
@@ -42,7 +57,7 @@ func main() {
 			fmt.Println("Error parsing:", path, err)
 			return nil
 		}
-		buildCodeFlowDiagram(node)
+		buildCodeFlowDiagram(node, fileSet)
 		return nil
 	})
 	if err != nil {
@@ -62,19 +77,20 @@ func main() {
 	fmt.Fprintln(file, "# Function Call Graph\n")
 	fmt.Fprintln(file, "```mermaid")
 
-	// === ADD: change layout to LR and define a class for bigger font size ===
 	fmt.Fprintln(file, "graph LR")
-	fmt.Fprintln(file, "classDef bigFont fill:#fff,stroke:#333,stroke-width:1px,font-size:16px;")
+	fmt.Fprintln(file, "classDef entryFunc fill:#f96,stroke:#333,stroke-width:2px,font-weight:bold,font-size:18px,color:#000;")
+	fmt.Fprintln(file, "classDef leafFunc fill:#6f9,stroke:#333,stroke-width:1px,font-style:italic,font-size:14px,color:#000;")
+	fmt.Fprintln(file, "classDef normalFunc fill:#fff,stroke:#333,stroke-width:1px,font-size:16px,color:#000;")
 
 	visited := make(map[string]bool)
-	printMermaidToFile(entryFunc, visited, file)
+	printMermaidToFile(entryFunc, visited, file, entryFunc)
 
 	fmt.Fprintln(file, "```")
 
 	fmt.Println("✅ Mermaid diagram written to codeflow.md")
 }
 
-func buildCodeFlowDiagram(node *ast.File) {
+func buildCodeFlowDiagram(node *ast.File, fset *token.FileSet) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		fn, ok := n.(*ast.FuncDecl)
 		if !ok || fn.Body == nil {
@@ -83,6 +99,23 @@ func buildCodeFlowDiagram(node *ast.File) {
 		funcName := fn.Name.Name
 		fmt.Println("Found function:", funcName)
 
+		// Get the source code of this function
+		src, err := getFuncSource(fn, fset)
+		if err != nil {
+			fmt.Println("Error getting source for", funcName, ":", err)
+			return true
+		}
+
+		// Get the summary of the function
+		summary, err := getFunctionSummary(src)
+		if err != nil {
+			fmt.Println("Error getting summary for", funcName, ":", err)
+			return true
+		}
+
+		fmt.Printf("Summary for %s:\n%s\n\n", funcName, summary)
+
+		// Existing code to build the call graph
 		ast.Inspect(fn.Body, func(bn ast.Node) bool {
 			call, ok := bn.(*ast.CallExpr)
 			if !ok {
@@ -101,24 +134,62 @@ func buildCodeFlowDiagram(node *ast.File) {
 	})
 }
 
-func printMermaidToFile(fn string, visited map[string]bool, file *os.File) {
+func printMermaidToFile(fn string, visited map[string]bool, file *os.File, entryFunc string) {
 	if visited[fn] {
 		return
 	}
 	visited[fn] = true
 
+	// Determine node class based on function role
+	nodeClass := "normalFunc"
 	callees := codeFlowGraph[fn]
-	if len(callees) == 0 {
-		// Leaf node: print node with bigFont class
-		fmt.Fprintf(file, "    %s:::bigFont\n", fn)
-		return
+
+	if fn == entryFunc {
+		nodeClass = "entryFunc"
+	} else if len(callees) == 0 {
+		nodeClass = "leafFunc"
 	}
 
+	// Print the node once with a label and class
+	fmt.Fprintf(file, "    %s[%q]:::%s\n", fn, fn, nodeClass)
+
+	// Print edges and recurse for each callee
 	for _, callee := range callees {
-		// Print edges without styling
 		fmt.Fprintf(file, "    %s --> %s\n", fn, callee)
-		// Print callee node with class
-		fmt.Fprintf(file, "    %s:::bigFont\n", callee)
-		printMermaidToFile(callee, visited, file)
+		printMermaidToFile(callee, visited, file, entryFunc)
 	}
+}
+
+func getFuncSource(node *ast.FuncDecl, fset *token.FileSet) (string, error) {
+	var buf bytes.Buffer
+	err := printer.Fprint(&buf, fset, node)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func getFunctionSummary(code string) (string, error) {
+	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: "gpt-4o-mini",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    "system",
+					Content: "You are a helpful assistant. Summarize the following Go function in one or two sentences.",
+				},
+				{
+					Role:    "user",
+					Content: code,
+				},
+			},
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	return resp.Choices[0].Message.Content, nil
 }
