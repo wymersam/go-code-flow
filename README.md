@@ -8,7 +8,7 @@ This tool parses Go source code, builds a **function call graph**, and generates
 
 - 🔎 Parses Go source files
 - 🧭 Extracts function calls and builds a flow graph
-- 📝 Summarises each function using the OpenAI API
+- 📝 (Optional) Summarises each function using the OpenAI API
 - 📄 Outputs a `codeflow.md` file with a Mermaid diagram for easy visualisation
 
 ---
@@ -40,13 +40,23 @@ OPENAI_API_KEY=sk-proj-your-key-here
 go run main.go [path-to-go-code] [entry-function-name]
 ```
 
+### Optional Flags
+
+`-summaries`: Enable function summaries using OpenAI
+
 ### Example
 
 ```bash
 go run main.go ./example main
 ```
 
-This will generate a file named codeflow.md with a Mermaid graph you can paste into:
+with summaries:
+
+```bash
+go run main.go -summaries ./example main
+```
+
+This will generate a file named `codeflow.md` with a Mermaid graph you can paste into:
 
 [Mermaid Live](https://mermaid.live)
 

@@ -9,6 +9,8 @@ import (
 	"github.com/wymersam/goflow/outputFile"
 )
 
+var EnableSummaries bool
+
 func BuildCodeFlowDiagram(node *ast.File, fset *token.FileSet) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		fn, ok := n.(*ast.FuncDecl)
@@ -25,17 +27,20 @@ func BuildCodeFlowDiagram(node *ast.File, fset *token.FileSet) {
 			return true
 		}
 
-		// Get the summary of the function
-		summary, err := api.GetFunctionSummary(src)
-		if err != nil {
-			fmt.Println("Error getting summary for", funcName, ":", err)
-			return true
+		// Generate summary if enabled
+		if EnableSummaries {
+			summary, err := api.GetFunctionSummary(src)
+			if err != nil {
+				fmt.Println("Error getting summary for", funcName, ":", err)
+			} else {
+				api.FuncSummaries[funcName] = summary
+				fmt.Printf("Summary for %s:\n%s\n\n", funcName, summary)
+			}
+		} else {
+			fmt.Println("Summaries are disabled. Skipping summary generation for", funcName)
 		}
 
-		api.FuncSummaries[funcName] = summary
-		fmt.Printf("Summary for %s:\n%s\n\n", funcName, summary)
-
-		// Build the code flow graph
+		// Always build the call graph
 		ast.Inspect(fn.Body, func(bn ast.Node) bool {
 			call, ok := bn.(*ast.CallExpr)
 			if !ok {
@@ -49,6 +54,7 @@ func BuildCodeFlowDiagram(node *ast.File, fset *token.FileSet) {
 			}
 			return true
 		})
+
 		return true
 	})
 }

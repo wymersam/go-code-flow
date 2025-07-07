@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -23,12 +24,20 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: go run main.go [path-to-code] [entry-func-name]")
+
+	var generateSummaries bool
+	flag.BoolVar(&generateSummaries, "summaries", false, "Generate function summaries (uses OpenAI)")
+	flag.Parse()
+
+	diagram.EnableSummaries = generateSummaries
+
+	args := flag.Args()
+	if len(args) < 2 {
+		fmt.Println("Usage: go run main.go [flags] [path-to-code] [entry-func-name]")
 		return
 	}
-	root := os.Args[1]
-	entryFunc := os.Args[2]
+	root := args[0]
+	entryFunc := args[1]
 
 	// Check if path exists and is a directory
 	info, err := os.Stat(root)
