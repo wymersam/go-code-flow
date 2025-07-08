@@ -1,4 +1,3 @@
-// src/components/Diagram.tsx
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 
@@ -18,17 +17,27 @@ type DiagramProps = {
 
 const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const gRef = useRef<SVGGElement | null>(null);
 
   useEffect(() => {
-    if (!nodes.length || !links.length || !svgRef.current) return;
+    if (!nodes.length || !links.length || !svgRef.current || !gRef.current)
+      return;
 
     const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove(); // clear previous render
+    const g = d3.select(gRef.current);
+    svg.selectAll("g > *").remove(); // clear inside <g> only
 
-    const width = +svg.attr("width");
-    const height = +svg.attr("height");
+    const width = svgRef.current.clientWidth;
+    const height = svgRef.current.clientHeight;
 
-    // Create simulation with forces
+    // Zoom/pan behavior
+    svg.call(
+      d3.zoom<SVGSVGElement, unknown>().on("zoom", (event) => {
+        g.attr("transform", event.transform);
+      })
+    );
+
+    // Create simulation
     const simulation = d3
       .forceSimulation(nodes as any)
       .force(
@@ -38,11 +47,11 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
           .id((d: any) => d.id)
           .distance(100)
       )
-      .force("charge", d3.forceManyBody().strength(-400))
+      .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
     // Draw links
-    const link = svg
+    const link = g
       .append("g")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
@@ -52,7 +61,7 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       .attr("stroke-width", 1.5);
 
     // Draw nodes
-    const node = svg
+    const node = g
       .append("g")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
@@ -81,7 +90,7 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       );
 
     // Labels
-    const label = svg
+    const label = g
       .append("g")
       .selectAll("text")
       .data(nodes)
@@ -91,7 +100,7 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       .attr("dx", 12)
       .attr("dy", ".35em");
 
-    // Update positions every tick
+    // Tick
     simulation.on("tick", () => {
       link
         .attr("x1", (d: any) => (d.source as any).x)
@@ -100,14 +109,17 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
         .attr("y2", (d: any) => (d.target as any).y);
 
       node.attr("cx", (d: any) => d.x).attr("cy", (d: any) => d.y);
-
       label.attr("x", (d: any) => d.x).attr("y", (d: any) => d.y);
     });
 
     return () => simulation.stop();
   }, [nodes, links]);
 
-  return <svg ref={svgRef} width={600} height={400} />;
+  return (
+    <svg ref={svgRef} style={{ width: "100%", height: "100vh" }}>
+      <g ref={gRef}></g>
+    </svg>
+  );
 };
 
 export default Diagram;
