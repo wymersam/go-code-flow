@@ -1,4 +1,4 @@
-package outputFile
+package handlers
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"go/token"
 )
 
-func GetFuncSource(node *ast.FuncDecl, fset *token.FileSet) (string, error) {
+func getFuncSource(node *ast.FuncDecl, fset *token.FileSet) (string, error) {
 	var buf bytes.Buffer
 	err := printer.Fprint(&buf, fset, node)
 	if err != nil {
