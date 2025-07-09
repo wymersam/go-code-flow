@@ -1,13 +1,35 @@
 package handlers
 
 import (
-	"encoding/json"
-	"net/http"
+	"context"
+	"os"
 
-	"github.com/wymersam/goflow/api"
+	"github.com/sashabaranov/go-openai"
 )
 
-func HandleSummaries(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(api.FuncSummaries)
+var FuncSummaries = make(map[string]string)
+
+func GetFunctionSummary(code string) (string, error) {
+	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: "gpt-4o-mini",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    "system",
+					Content: "You are a helpful assistant. Summarise the following Go function in one or two sentences.",
+				},
+				{
+					Role:    "user",
+					Content: code,
+				},
+			},
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	return resp.Choices[0].Message.Content, nil
 }

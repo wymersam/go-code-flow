@@ -19,7 +19,7 @@ func GetFunctionSummary(code string) (string, error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    "system",
-					Content: "You are a helpful assistant. Summarise the following Go function in one or two sentences.",
+					Content: "You are a helpful assistant. Summarise the following Go function in one or two sentences without repeating the function name.",
 				},
 				{
 					Role:    "user",

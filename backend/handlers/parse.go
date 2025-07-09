@@ -11,8 +11,9 @@ import (
 )
 
 type ParseRequest struct {
-	Path      string `json:"path"`
-	EntryFunc string `json:"entryFunc"`
+	Path          string `json:"path"`
+	EntryFunc     string `json:"entryFunc"`
+	EnableSummary bool   `json:"enableSummary"`
 }
 
 // Update response type to use Links instead of Edges
@@ -22,8 +23,9 @@ type Link struct {
 }
 
 type ParseResponse struct {
-	Nodes []string `json:"nodes"`
-	Links []Link   `json:"links"`
+	Nodes     []string          `json:"nodes"`
+	Links     []Link            `json:"links"`
+	Summaries map[string]string `json:"summaries"` // map of funcName to summary
 }
 
 func HandleParse(w http.ResponseWriter, r *http.Request) {
@@ -61,11 +63,21 @@ func HandleParse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build function map (assuming BuildCodeFlowDiagram supports this)
-	funcMap, err := BuildCodeFlowDiagram(node, fileSet, true)
+	enableSummaries := false
+	if val := r.FormValue("enableSummary"); val == "true" {
+		enableSummaries = true
+	}
+
+	// Build function map
+	funcMap, err := BuildCodeFlowDiagram(node, fileSet, enableSummaries)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to build diagram: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	summaries := make(map[string]string)
+	for funcName, info := range funcMap {
+		summaries[funcName] = info.Summary
 	}
 
 	// Collect nodes and links from funcMap as before
@@ -87,8 +99,9 @@ func HandleParse(w http.ResponseWriter, r *http.Request) {
 	sort.Strings(nodes)
 
 	resp := ParseResponse{
-		Nodes: nodes,
-		Links: links,
+		Nodes:     nodes,
+		Links:     links,
+		Summaries: summaries,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
