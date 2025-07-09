@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"go/ast"
+	"go/printer"
 	"go/token"
 
 	"github.com/wymersam/goflow/api"
@@ -9,8 +11,6 @@ import (
 
 // CallGraph represents a function call graph: function => list of called functions
 type CallGraph map[string][]string
-
-// FunctionInfo holds info about a function node
 type FunctionInfo struct {
 	Name       string
 	Calls      []string
@@ -19,8 +19,16 @@ type FunctionInfo struct {
 	Pos        token.Position
 }
 
-// BuildCodeFlowDiagram builds a call graph and optionally generates summaries.
-// Returns a map from function name to FunctionInfo.
+func getFuncSource(node *ast.FuncDecl, fset *token.FileSet) (string, error) {
+	var buf bytes.Buffer
+	err := printer.Fprint(&buf, fset, node)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// Builds a call graph and optionally generates summaries
 func BuildCodeFlowDiagram(node *ast.File, fset *token.FileSet, enableSummaries bool) (map[string]FunctionInfo, error) {
 	funcMap := make(map[string]FunctionInfo)
 
@@ -31,7 +39,7 @@ func BuildCodeFlowDiagram(node *ast.File, fset *token.FileSet, enableSummaries b
 		}
 		funcName := fn.Name.Name
 
-		src, err := getFuncSource(fn, fset) // your helper for source code extraction
+		src, err := getFuncSource(fn, fset)
 		if err != nil {
 			return true // skip errors
 		}
