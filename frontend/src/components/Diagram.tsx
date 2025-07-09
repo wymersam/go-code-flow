@@ -50,6 +50,19 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
+    // Track connections
+    const linkedByIndex = new Set(
+      links.map(
+        (d) => `${(d.source as NodeType).id}|${(d.target as NodeType).id}`
+      )
+    );
+
+    const isConnected = (a: NodeType, b: NodeType) =>
+      linkedByIndex.has(`${a.id}|${b.id}`) ||
+      linkedByIndex.has(`${b.id}|${a.id}`);
+
+    let selectedNode: NodeType | null = null;
+
     // Draw links
     const link = g
       .append("g")
@@ -70,6 +83,27 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       .join("circle")
       .attr("r", 10)
       .attr("fill", "#69b3a2")
+      .on("click", (event, d: NodeType) => {
+        if (selectedNode === d) {
+          // Reset view
+          selectedNode = null;
+          node.style("opacity", 1);
+          link.style("opacity", 1);
+          label.style("opacity", 1);
+        } else {
+          // Highlight connected nodes/links
+          selectedNode = d;
+          node.style("opacity", (o: any) =>
+            o === d || isConnected(d, o) ? 1 : 0.1
+          );
+          link.style("opacity", (l: any) =>
+            l.source === d || l.target === d ? 1 : 0.1
+          );
+          label.style("opacity", (o: any) =>
+            o === d || isConnected(d, o) ? 1 : 0.1
+          );
+        }
+      })
       .call(
         d3
           .drag()
