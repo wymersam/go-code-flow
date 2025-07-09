@@ -39,6 +39,7 @@ OPENAI_API_KEY=sk-proj-your-key-here
 #### Step 4: Run the backend server
 
 ```bash
+cd backend
 go run main.go
 # By default it will listen on http://localhost:8080
 ```
@@ -66,7 +67,7 @@ npm install
 #### Step 3: Start the React development server
 
 ```bash
-npm start
+npm run dev
 ```
 
 Then open your browser to `http://localhost:5173/`
