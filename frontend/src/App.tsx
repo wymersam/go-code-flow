@@ -1,6 +1,7 @@
 import React from "react";
 import GoFileUploader from "./components/GoFileUploader";
 import Diagram from "./components/Diagram";
+import "./app.css";
 
 const App: React.FC = () => {
   const [graphData, setGraphData] = React.useState<{
