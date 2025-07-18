@@ -33,7 +33,7 @@ func enableCORS(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func main() {
-	http.HandleFunc("/parse", enableCORS(handlers.HandleParse))
+	http.HandleFunc("/parse", enableCORS(handlers.HandleRepoParse))
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "🚀 GoFlow server is running!")
 	})

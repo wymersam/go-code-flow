@@ -1,89 +1,111 @@
 package handlers
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"io"
+	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 )
 
-type ParseRequest struct {
-	Path          string `json:"path"`
-	EntryFunc     string `json:"entryFunc"`
-	EnableSummary bool   `json:"enableSummary"`
+type ParseResponse struct {
+	Nodes     []string          `json:"nodes"`
+	Links     []Link            `json:"links"`
+	Summaries map[string]string `json:"summaries"`
 }
 
-// Update response type to use Links instead of Edges
 type Link struct {
 	Source string `json:"source"`
 	Target string `json:"target"`
 }
 
-type ParseResponse struct {
-	Nodes     []string          `json:"nodes"`
-	Links     []Link            `json:"links"`
-	Summaries map[string]string `json:"summaries"` // map of funcName to summary
-}
-
-func HandleParse(w http.ResponseWriter, r *http.Request) {
+func HandleRepoParse(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Parse multipart form (max 10MB)
-	err := r.ParseMultipartForm(10 << 20)
+	err := r.ParseMultipartForm(100 << 20) // 100MB max
 	if err != nil {
-		http.Error(w, "Failed to parse multipart form", http.StatusBadRequest)
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
 
-	file, _, err := r.FormFile("file")
+	file, _, err := r.FormFile("repo")
 	if err != nil {
-		http.Error(w, "Missing file in request", http.StatusBadRequest)
+		http.Error(w, "Missing repo file", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	// Read uploaded file into memory
-	srcBytes, err := io.ReadAll(file)
+	enableSummaries := r.FormValue("enableSummary") == "true"
+
+	// Read ZIP into memory
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, file)
 	if err != nil {
-		http.Error(w, "Failed to read uploaded file", http.StatusInternalServerError)
+		http.Error(w, "Failed to read zip file", http.StatusInternalServerError)
 		return
 	}
 
-	fileSet := token.NewFileSet()
-	// Parse the file from bytes (instead of path)
-	node, err := parser.ParseFile(fileSet, "", srcBytes, parser.AllErrors)
+	// Unzip to temp dir
+	tmpDir, err := os.MkdirTemp("", "gorepo")
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to parse Go source: %v", err), http.StatusBadRequest)
+		http.Error(w, "Failed to create temp dir", http.StatusInternalServerError)
+		return
+	}
+	defer os.RemoveAll(tmpDir)
+
+	err = unzip(buf.Bytes(), tmpDir)
+	if err != nil {
+		http.Error(w, "Failed to unzip repo", http.StatusInternalServerError)
 		return
 	}
 
-	enableSummaries := false
-	if val := r.FormValue("enableSummary"); val == "true" {
-		enableSummaries = true
-	}
+	// Parse all .go files
+	fset := token.NewFileSet()
+	var files []*ast.File
 
-	// Build function map
-	funcMap, err := BuildCodeFlowDiagram(node, fileSet, enableSummaries)
+	err = filepath.WalkDir(tmpDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
+			return nil
+		}
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		node, err := parser.ParseFile(fset, path, src, parser.AllErrors)
+		if err == nil {
+			files = append(files, node)
+		}
+		return nil
+	})
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to build diagram: %v", err), http.StatusInternalServerError)
+		http.Error(w, "Failed to walk files", http.StatusInternalServerError)
 		return
 	}
 
+	funcMap, err := BuildCodeFlowDiagram(files, fset, enableSummaries)
+	if err != nil {
+		http.Error(w, "Failed to analyze code", http.StatusInternalServerError)
+		return
+	}
+
+	// Build response
 	summaries := make(map[string]string)
-	for funcName, info := range funcMap {
-		summaries[funcName] = info.Summary
-	}
-
-	// Collect nodes and links from funcMap as before
 	nodeSet := make(map[string]struct{})
 	var links []Link
+
 	for funcName, info := range funcMap {
+		summaries[funcName] = info.Summary
 		nodeSet[funcName] = struct{}{}
 		for _, call := range info.Calls {
 			nodeSet[call] = struct{}{}
@@ -91,7 +113,6 @@ func HandleParse(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Sort node list
 	var nodes []string
 	for n := range nodeSet {
 		nodes = append(nodes, n)
@@ -105,7 +126,38 @@ func HandleParse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Error encoding JSON response", http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(resp)
+}
+
+func unzip(data []byte, dest string) error {
+	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return err
 	}
+	for _, f := range r.File {
+		fpath := filepath.Join(dest, f.Name)
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, os.ModePerm)
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			return err
+		}
+		outFile, err := os.Create(fpath)
+		if err != nil {
+			return err
+		}
+		rc, err := f.Open()
+		if err != nil {
+			outFile.Close()
+			return err
+		}
+		_, err = io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

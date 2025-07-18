@@ -21,8 +21,8 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith(".go")) {
-      alert("Please select a Go source file (.go)");
+    if (!file.name.endsWith(".zip")) {
+      alert("Please select a ZIP file (.zip)");
       return;
     }
 
@@ -31,7 +31,7 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
     setSelectedFunc(null);
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("repo", file);
     formData.append("enableSummary", enableSummary ? "true" : "false");
 
     fetch("http://localhost:8080/parse", {
@@ -58,7 +58,7 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
 
   return (
     <div className="container">
-      <h2>Upload Go source file</h2>
+      <h2>Upload Go repository (.zip)</h2>
 
       <label>
         <input
@@ -69,7 +69,7 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
         Generate function summaries <span>(uses OpenAI API)</span>
       </label>
 
-      <input type="file" accept=".go" onChange={handleFileChange} />
+      <input type="file" accept=".zip" onChange={handleFileChange} />
 
       {loading && <p className="loading-text">Processing file...</p>}
       {error && <p className="error-text">{error}</p>}

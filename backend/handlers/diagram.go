@@ -28,55 +28,56 @@ func getFuncSource(node *ast.FuncDecl, fset *token.FileSet) (string, error) {
 	return buf.String(), nil
 }
 
-// Builds a call graph and optionally generates summaries
-func BuildCodeFlowDiagram(node *ast.File, fset *token.FileSet, enableSummaries bool) (map[string]FunctionInfo, error) {
+func BuildCodeFlowDiagram(files []*ast.File, fset *token.FileSet, enableSummaries bool) (map[string]FunctionInfo, error) {
 	funcMap := make(map[string]FunctionInfo)
 
-	ast.Inspect(node, func(n ast.Node) bool {
-		fn, ok := n.(*ast.FuncDecl)
-		if !ok || fn.Body == nil {
-			return true
-		}
-		funcName := fn.Name.Name
-
-		src, err := getFuncSource(fn, fset)
-		if err != nil {
-			return true // skip errors
-		}
-
-		calls := []string{}
-		ast.Inspect(fn.Body, func(bn ast.Node) bool {
-			call, ok := bn.(*ast.CallExpr)
-			if !ok {
+	for _, node := range files {
+		ast.Inspect(node, func(n ast.Node) bool {
+			fn, ok := n.(*ast.FuncDecl)
+			if !ok || fn.Body == nil {
 				return true
 			}
-			switch fun := call.Fun.(type) {
-			case *ast.Ident:
-				calls = append(calls, fun.Name)
-			case *ast.SelectorExpr:
-				calls = append(calls, fun.Sel.Name)
+			funcName := fn.Name.Name
+
+			src, err := getFuncSource(fn, fset)
+			if err != nil {
+				return true
 			}
+
+			calls := []string{}
+			ast.Inspect(fn.Body, func(bn ast.Node) bool {
+				call, ok := bn.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				switch fun := call.Fun.(type) {
+				case *ast.Ident:
+					calls = append(calls, fun.Name)
+				case *ast.SelectorExpr:
+					calls = append(calls, fun.Sel.Name)
+				}
+				return true
+			})
+
+			summary := ""
+			if enableSummaries {
+				s, err := api.GetFunctionSummary(src)
+				if err == nil {
+					summary = s
+				}
+			}
+
+			funcMap[funcName] = FunctionInfo{
+				Name:       funcName,
+				Calls:      calls,
+				SourceCode: src,
+				Summary:    summary,
+				Pos:        fset.Position(fn.Pos()),
+			}
+
 			return true
 		})
-
-		summary := ""
-		if enableSummaries {
-			s, err := api.GetFunctionSummary(src)
-			if err == nil {
-				summary = s
-			}
-		}
-
-		funcMap[funcName] = FunctionInfo{
-			Name:       funcName,
-			Calls:      calls,
-			SourceCode: src,
-			Summary:    summary,
-			Pos:        fset.Position(fn.Pos()),
-		}
-
-		return true
-	})
+	}
 
 	return funcMap, nil
 }
