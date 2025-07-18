@@ -14,8 +14,10 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summaries, setSummaries] = useState<Record<string, string>>({});
-  const [selectedFunc, setSelectedFunc] = useState<string | null>(null);
+  const [highlightedFunc, setHighlightedFunc] = useState<string | null>(null);
+  const [selectedFunction, setSelectedFunction] = useState<string>("");
   const [enableSummary, setEnableSummary] = useState(false);
+  const [rawGraph, setRawGraph] = useState<ParseResponse | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,7 +30,7 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
 
     setError(null);
     setLoading(true);
-    setSelectedFunc(null);
+    setHighlightedFunc(null);
 
     const formData = new FormData();
     formData.append("repo", file);
@@ -45,15 +47,79 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
         return response.json() as Promise<ParseResponse>;
       })
       .then((data) => {
-        const nodes = data.nodes.map((id) => ({ id }));
-        onGraphData({ nodes, links: data.links });
+        setRawGraph(data);
         setSummaries(data.summaries);
         setLoading(false);
+
+        // Optional: Show nothing until a function is selected
+        onGraphData({
+          nodes: [],
+          links: [],
+        });
+
+        // Or show full graph by default:
+        // onGraphData({
+        //   nodes: data.nodes.map((id) => ({ id })),
+        //   links: data.links,
+        // });
       })
       .catch((err) => {
         setError(err.message);
         setLoading(false);
       });
+  };
+
+  const getSubgraph = (
+    startNode: string,
+    links: { source: string; target: string }[]
+  ): { nodes: string[]; links: { source: string; target: string }[] } => {
+    const visited = new Set<string>();
+    const queue = [startNode];
+    const subLinks: { source: string; target: string }[] = [];
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current || visited.has(current)) continue;
+      visited.add(current);
+
+      const outgoing = links.filter((link) => link.source === current);
+      subLinks.push(...outgoing);
+
+      for (const link of outgoing) {
+        if (!visited.has(link.target)) {
+          queue.push(link.target);
+        }
+      }
+    }
+
+    return {
+      nodes: Array.from(visited),
+      links: subLinks,
+    };
+  };
+
+  const updateGraphFromFunction = (data: ParseResponse, func: string) => {
+    let filteredNodes = data.nodes.map((id) => ({ id }));
+    let filteredLinks = data.links;
+
+    if (func) {
+      const { nodes: ids, links } = getSubgraph(func, data.links);
+      filteredNodes = ids.map((id) => ({ id }));
+      filteredLinks = links;
+    }
+
+    onGraphData({
+      nodes: filteredNodes,
+      links: filteredLinks,
+    });
+  };
+
+  const handleFunctionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const func = e.target.value;
+    setSelectedFunction(func);
+    if (rawGraph) {
+      updateGraphFromFunction(rawGraph, func);
+    }
   };
 
   return (
@@ -74,6 +140,20 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
       {loading && <p className="loading-text">Processing file...</p>}
       {error && <p className="error-text">{error}</p>}
 
+      {rawGraph && rawGraph.nodes.length > 0 && (
+        <div className="function-selector">
+          <label>Select function to visualize:</label>
+          <select value={selectedFunction} onChange={handleFunctionSelect}>
+            <option value="">(All functions)</option>
+            {rawGraph.nodes.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {enableSummary && Object.keys(summaries).length > 0 && (
         <div className="function-summary-container">
           <h3>Functions</h3>
@@ -81,9 +161,9 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
             {Object.keys(summaries).map((funcName) => (
               <li
                 key={funcName}
-                onClick={() => setSelectedFunc(funcName)}
+                onClick={() => setHighlightedFunc(funcName)}
                 className={`function-list-item ${
-                  selectedFunc === funcName ? "selected" : ""
+                  highlightedFunc === funcName ? "selected" : ""
                 }`}
               >
                 {funcName}
@@ -91,10 +171,10 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
             ))}
           </ul>
 
-          {selectedFunc && (
+          {highlightedFunc && (
             <div className="function-summary-box">
-              <h4>Summary for {selectedFunc}</h4>
-              <p>{summaries[selectedFunc] || "No summary available."}</p>
+              <h4>Summary for {highlightedFunc}</h4>
+              <p>{summaries[highlightedFunc] || "No summary available."}</p>
             </div>
           )}
         </div>

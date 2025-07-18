@@ -30,14 +30,12 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
     const width = svgRef.current.clientWidth;
     const height = svgRef.current.clientHeight;
 
-    // Zoom/pan behavior
     svg.call(
       d3.zoom<SVGSVGElement, unknown>().on("zoom", (event) => {
         g.attr("transform", event.transform);
       })
     );
 
-    // Create simulation
     const simulation = d3
       .forceSimulation(nodes as any)
       .force(
@@ -63,7 +61,6 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
 
     let selectedNode: NodeType | null = null;
 
-    // Draw links
     const link = g
       .append("g")
       .attr("stroke", "#999")
@@ -73,7 +70,6 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       .join("line")
       .attr("stroke-width", 1.5);
 
-    // Draw nodes
     const node = g
       .append("g")
       .attr("stroke", "#fff")
@@ -123,7 +119,6 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
           })
       );
 
-    // Labels
     const label = g
       .append("g")
       .selectAll("text")
@@ -134,7 +129,6 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       .attr("dx", 12)
       .attr("dy", ".35em");
 
-    // Tick
     simulation.on("tick", () => {
       link
         .attr("x1", (d: any) => (d.source as any).x)

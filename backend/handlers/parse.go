@@ -56,7 +56,6 @@ func HandleRepoParse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Unzip to temp dir
 	tmpDir, err := os.MkdirTemp("", "gorepo")
 	if err != nil {
 		http.Error(w, "Failed to create temp dir", http.StatusInternalServerError)
