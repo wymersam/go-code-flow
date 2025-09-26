@@ -8,13 +8,19 @@ interface ParseResponse {
 
 interface GoFileUploaderProps {
   onGraphData: (data: { nodes: { id: string }[]; links: any[] }) => void;
+  onSummariesUpdate?: (
+    summaries: Record<string, string>,
+    show: boolean
+  ) => void;
 }
 
-const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
+const GoFileUploader: React.FC<GoFileUploaderProps> = ({
+  onGraphData,
+  onSummariesUpdate,
+}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summaries, setSummaries] = useState<Record<string, string>>({});
-  const [highlightedFunc, setHighlightedFunc] = useState<string | null>(null);
   const [selectedFunction, setSelectedFunction] = useState<string>("");
   const [enableSummary, setEnableSummary] = useState(false);
   const [rawGraph, setRawGraph] = useState<ParseResponse | null>(null);
@@ -30,7 +36,6 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
 
     setError(null);
     setLoading(true);
-    setHighlightedFunc(null);
 
     const formData = new FormData();
     formData.append("repo", file);
@@ -47,21 +52,23 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
         return response.json() as Promise<ParseResponse>;
       })
       .then((data) => {
+        console.log("Received data from server:", data);
         setRawGraph(data);
         setSummaries(data.summaries);
         setLoading(false);
 
-        // Optional: Show nothing until a function is selected
-        onGraphData({
-          nodes: [],
-          links: [],
-        });
+        // Notify parent about summaries
+        if (onSummariesUpdate) {
+          onSummariesUpdate(data.summaries, enableSummary);
+        }
 
-        // Or show full graph by default:
-        // onGraphData({
-        //   nodes: data.nodes.map((id) => ({ id })),
-        //   links: data.links,
-        // });
+        // Show full graph by default
+        const graphData = {
+          nodes: data.nodes.map((id) => ({ id })),
+          links: data.links,
+        };
+        console.log("Sending to diagram:", graphData);
+        onGraphData(graphData);
       })
       .catch((err) => {
         setError(err.message);
@@ -142,7 +149,7 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
 
       {rawGraph && rawGraph.nodes.length > 0 && (
         <div className="function-selector">
-          <label>Select function to visualize:</label>
+          <label>Select function to visualise:</label>
           <select value={selectedFunction} onChange={handleFunctionSelect}>
             <option value="">(All functions)</option>
             {rawGraph.nodes.map((name) => (
@@ -151,32 +158,6 @@ const GoFileUploader: React.FC<GoFileUploaderProps> = ({ onGraphData }) => {
               </option>
             ))}
           </select>
-        </div>
-      )}
-
-      {enableSummary && Object.keys(summaries).length > 0 && (
-        <div className="function-summary-container">
-          <h3>Functions</h3>
-          <ul>
-            {Object.keys(summaries).map((funcName) => (
-              <li
-                key={funcName}
-                onClick={() => setHighlightedFunc(funcName)}
-                className={`function-list-item ${
-                  highlightedFunc === funcName ? "selected" : ""
-                }`}
-              >
-                {funcName}
-              </li>
-            ))}
-          </ul>
-
-          {highlightedFunc && (
-            <div className="function-summary-box">
-              <h4>Summary for {highlightedFunc}</h4>
-              <p>{summaries[highlightedFunc] || "No summary available."}</p>
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -1,3 +1,20 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100%;
+}
+
 h2 {
   margin-bottom: 1rem;
   color: #333;
@@ -50,11 +67,43 @@ ul {
   padding-left: 0;
 }
 
-.container {
+.app-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  flex-shrink: 0;
   background: #f9f9f9;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #ddd;
+  padding: 1rem;
+  z-index: 10;
+  position: relative;
+}
+
+.app-main {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0; /* Ensures flex item can shrink */
+  background: #fff; /* Debug: make the main area visible */
+}
+
+.no-graph-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.container {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .loading-text {
@@ -94,4 +143,68 @@ ul {
 
 .show-whole-repo-option {
   margin-top: 1rem;
+}
+
+.summaries-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 350px;
+  height: 100vh;
+  background: white;
+  border-left: 1px solid #ddd;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.summaries-content {
+  padding: 1rem;
+  position: relative;
+}
+
+.close-summaries {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.close-summaries:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.summaries-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.summaries-list .function-list-item {
+  margin-bottom: 0.5rem;
+}
+
+.diagram-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.diagram-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
 }

@@ -20,8 +20,7 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
   const gRef = useRef<SVGGElement | null>(null);
 
   useEffect(() => {
-    if (!nodes.length || !links.length || !svgRef.current || !gRef.current)
-      return;
+    if (!nodes.length || !svgRef.current || !gRef.current) return;
 
     const svg = d3.select(svgRef.current);
     const g = d3.select(gRef.current);
@@ -74,7 +73,7 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       .append("g")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
-      .selectAll("circle")
+      .selectAll<SVGCircleElement, NodeType>("circle")
       .data(nodes)
       .join("circle")
       .attr("r", 10)
@@ -102,17 +101,17 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       })
       .call(
         d3
-          .drag()
-          .on("start", (event, d: any) => {
+          .drag<SVGCircleElement, NodeType>()
+          .on("start", (event, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
             d.fx = d.x;
             d.fy = d.y;
           })
-          .on("drag", (event, d: any) => {
+          .on("drag", (event, d) => {
             d.fx = event.x;
             d.fy = event.y;
           })
-          .on("end", (event, d: any) => {
+          .on("end", (event, d) => {
             if (!event.active) simulation.alphaTarget(0);
             d.fx = null;
             d.fy = null;
@@ -140,7 +139,9 @@ const Diagram: React.FC<DiagramProps> = ({ nodes, links }) => {
       label.attr("x", (d: any) => d.x).attr("y", (d: any) => d.y);
     });
 
-    return () => simulation.stop();
+    return () => {
+      simulation.stop();
+    };
   }, [nodes, links]);
 
   return (
